@@ -1,14 +1,23 @@
 package com.ll.simpleDb;
 
+import lombok.RequiredArgsConstructor;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class Sql {
+    private final SimpleDb simpleDb;
+    private  StringBuilder sqlFormat;
 
+    public  Sql(SimpleDb simpleDb) {
+        this.simpleDb = simpleDb;
+        this.sqlFormat = new StringBuilder();
+    }
     public Sql append(String sqlBit, Object... param) {
-        return  this;
+        this.sqlFormat.append(" " + sqlBit);
+        return this;
     }
 
     public long insert() {
@@ -67,5 +76,23 @@ public class Sql {
                 "body", "내용1",
                 "isBlind", false
         );
+    }
+
+    public LocalDateTime selectDatetime() {
+        return LocalDateTime.now();
+    }
+
+
+
+    public long selectLong() {
+        return simpleDb.selectLong(sqlFormat.toString().trim());
+    }
+
+    public String selectString() {
+        return simpleDb.selectString(sqlFormat.toString().trim());
+    }
+
+    public boolean selectBoolean() {
+        return simpleDb.selectBoolean(sqlFormat.toString().trim());
     }
 }
