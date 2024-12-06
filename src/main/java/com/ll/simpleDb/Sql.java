@@ -18,7 +18,7 @@ public class Sql {
         this.sqlFormat = new StringBuilder();
     }
     public Sql append(String sqlBit, Object... params) {
-        this.sqlFormat.append(" " + sqlBit);
+        this.sqlFormat.append("\n" + sqlBit);
 
         // 필드 params 가 아닌, 메서드 파라미터 param을 순회해야 함
         for (Object param : params) {
@@ -28,7 +28,7 @@ public class Sql {
         return this;
     }
     private  String toSql(){
-        return sqlFormat.toString().trim();
+        return sqlFormat.toString();
     }
 
     public long insert() {
