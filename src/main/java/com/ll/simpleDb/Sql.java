@@ -1,5 +1,6 @@
 package com.ll.simpleDb;
 
+import com.ll.simpleDb.standard.util.Ut;
 import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
@@ -86,10 +87,7 @@ public class Sql {
 
     public <T> List<T> selectRows(Class<?> cls) {
             return simpleDb
-                    .selectRows(toSql(),params.toArray())
-                    .stream()
-                    .map(row -> (T) new Article(row))
-                    .toList();
+                    .selectRows(toSql(),cls,params.toArray());
 
     }
 }
