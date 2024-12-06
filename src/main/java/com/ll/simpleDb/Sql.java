@@ -84,4 +84,12 @@ public class Sql {
     }
 
 
+    public <T> List<T> selectRows(Class<?> cls) {
+            return simpleDb
+                    .selectRows(toSql(),params.toArray())
+                    .stream()
+                    .map(row -> (T) new Article(row))
+                    .toList();
+
+    }
 }
