@@ -1,10 +1,13 @@
 package com.ll.simpleDb;
 
 import lombok.RequiredArgsConstructor;
+import org.graalvm.nativeimage.ObjectHandle;
 
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @RequiredArgsConstructor
@@ -64,11 +67,48 @@ public class SimpleDb {
 
             if(sql.startsWith("SELECT")) {
                 ResultSet resultSet = preparedStatement.executeQuery();
-                resultSet.next();
 
                 if ( cls == String.class) {
+                    resultSet.next();
                     return  (T) resultSet.getString(1);
-                }else if( cls == Map.class){
+                }else if (cls == List.class) {
+                    List<Map<String, Object>> rows = new ArrayList<>();
+
+                    ResultSetMetaData metaData = resultSet.getMetaData();
+                    int columnCount = metaData.getColumnCount();
+
+                    while (resultSet.next()) {
+                        Map<String, Object> row = new LinkedHashMap<>();
+
+                        for (int i = 1; i <= columnCount; i++) {
+                            String columnName = metaData.getColumnLabel(i);
+                            Object value;
+
+                            switch (metaData.getColumnType(i)) {
+                                case Types.BIGINT:
+                                    value = resultSet.getLong(columnName);
+                                    break;
+                                case Types.TIMESTAMP:
+                                    Timestamp timestamp = resultSet.getTimestamp(columnName);
+                                    value = (timestamp != null) ? timestamp.toLocalDateTime() : null;
+                                    break;
+                                case Types.BOOLEAN:
+                                    value = resultSet.getBoolean(columnName);
+                                    break;
+                                default:
+                                    value = resultSet.getObject(columnName);
+                                    break;
+                            }
+
+                            row.put(columnName, value);
+                        }
+
+                        rows.add(row);
+                    }
+
+                    return (T) rows;
+                } else if( cls == Map.class){
+                    resultSet.next();
                     Map<String, Object> row = new LinkedHashMap<>();
                     ResultSetMetaData metaData = resultSet.getMetaData();
                     int columnCount = metaData.getColumnCount();
@@ -97,10 +137,13 @@ public class SimpleDb {
                     }
                     return (T) row;
                 } else if( cls == LocalDateTime.class){
+                    resultSet.next();
                     return  (T) resultSet.getTimestamp(1).toLocalDateTime();
                 }else if( cls == Long.class){
+                    resultSet.next();
                     return  (T) (Long) resultSet.getLong(1);
                 } else if( cls == Boolean.class){
+                    resultSet.next();
                     return  (T) (Boolean) resultSet.getBoolean(1);
                 }
             }
@@ -134,6 +177,10 @@ public class SimpleDb {
 
     public Map<String, Object> selectMap(String sql) {
         return _run(sql, Map.class);
+    }
+
+    public List<Map<String, Object>> selectRows(String sql) {
+        return _run(sql, List.class);
     }
 }
 
