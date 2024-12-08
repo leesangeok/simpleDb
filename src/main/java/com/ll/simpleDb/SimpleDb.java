@@ -14,18 +14,20 @@ public class SimpleDb {
     private final String username;
     private final String password;
     private final String dbName;
-    private Connection connection;
+    private Map<String, Connection> connections = new HashMap<>();
+
+
 
     // 현재는 개발 환경에서 항상 true로 설정
     private boolean isNotProdMode() {
         return true; // 배포 환경에서는 false로 설정
     }
 
-    // 데이터베이스 연결 초기화
-    private void connect() {
-        if (connection != null) {
-            return; // 이미 연결되어 있으면 아무 작업도 하지 않음
-        }
+
+    private Connection getCurrentThreadConnection(){
+        Connection connection = connections.get(Thread.currentThread().getName());
+
+        if ( connection != null ) return connection;
 
         String url = String.format("jdbc:mysql://%s:3307/%s?useSSL=false&allowPublicKeyRetrieval=true", host, dbName);
         try {
@@ -33,18 +35,33 @@ public class SimpleDb {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to connect to database: " + e.getMessage(), e);
         }
+
+        connections.put(Thread.currentThread().getName(), connection);
+
+        return connection;
+
     }
 
-    // 연결 해제
-    public void close() {
-        if (connection != null) {
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                throw new RuntimeException("Failed to close database connection: " + e.getMessage(), e);
-            }
+
+    private void clearCurrentThreadConnection() {
+        Connection connection = connections.get(Thread.currentThread().getName());
+
+        if ( connection == null ) return;
+
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to close database connection: " + e.getMessage(), e);
+        } finally {
+            connections.remove(Thread.currentThread().getName());
         }
+
     }
+
+    public void close() {
+        clearCurrentThreadConnection();
+    }
+
 
     public Sql genSql() {
         return new Sql(this);
@@ -131,7 +148,7 @@ public class SimpleDb {
 
     // 내부 SQL 실행 메서드
     private <T> T _run(String sql, Class<T> cls, Object... params) {
-        connect();
+
         sql = sql.trim();
 
         if (isNotProdMode()) {
@@ -140,8 +157,8 @@ public class SimpleDb {
         }
 
         try (PreparedStatement preparedStatement = sql.startsWith("INSERT")
-                ? connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
-                : connection.prepareStatement(sql)) {
+                ? getCurrentThreadConnection().prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
+                : getCurrentThreadConnection().prepareStatement(sql)) {
 
             bindParameters(preparedStatement, params);
 
